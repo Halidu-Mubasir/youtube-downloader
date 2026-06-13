@@ -1,0 +1,867 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YT Downloader</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0f0f0f;
+  --surface: #1a1a1a;
+  --surface2: #252525;
+  --border: #333;
+  --primary: #ff3333;
+  --primary-h: #cc2222;
+  --text: #f0f0f0;
+  --muted: #888;
+  --green: #4caf50;
+  --yellow: #ffb74d;
+  --blue: #42a5f5;
+  --red: #ef5350;
+  --radius: 10px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  min-height: 100vh;
+  padding: 24px 16px 60px;
+  line-height: 1.5;
+}
+
+.wrap {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+/* ── Header ── */
+header {
+  text-align: center;
+  padding: 36px 0 28px;
+}
+
+.logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.logo-icon {
+  width: 42px; height: 42px;
+  background: var(--primary);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+}
+
+header h1 {
+  font-size: 1.9rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
+}
+
+header p { color: var(--muted); font-size: 0.93rem; margin-top: 4px; }
+
+/* ── Warning Banner ── */
+.banner {
+  display: flex; align-items: center; gap: 10px;
+  background: rgba(255,183,77,.08);
+  border: 1px solid rgba(255,183,77,.25);
+  border-radius: var(--radius);
+  padding: 11px 16px;
+  font-size: 0.875rem;
+  color: var(--yellow);
+  margin-bottom: 16px;
+}
+
+.banner a { color: inherit; }
+
+/* ── Card ── */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px;
+  margin-bottom: 14px;
+}
+
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 4px;
+  margin-bottom: 18px;
+  gap: 4px;
+}
+
+.tab {
+  flex: 1;
+  padding: 9px 0;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 0.92rem;
+  font-weight: 500;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all .18s;
+}
+
+.tab.active {
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: 0 1px 5px rgba(0,0,0,.5);
+}
+
+.tab:hover:not(.active) { color: var(--text); }
+
+/* ── Inputs ── */
+.url-row { display: flex; gap: 10px; }
+
+input[type="text"] {
+  flex: 1;
+  padding: 11px 15px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 0.92rem;
+  outline: none;
+  transition: border-color .18s;
+  min-width: 0;
+}
+
+input[type="text"]:focus { border-color: var(--primary); }
+input[type="text"]::placeholder { color: var(--muted); }
+
+button { cursor: pointer; border: none; border-radius: 8px; font-weight: 600; transition: all .18s; }
+
+.btn-red {
+  background: var(--primary);
+  color: #fff;
+  padding: 11px 22px;
+  font-size: 0.92rem;
+  white-space: nowrap;
+}
+.btn-red:hover:not(:disabled) { background: var(--primary-h); }
+.btn-red:disabled { opacity: .45; cursor: not-allowed; }
+
+.btn-ghost {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 8px 16px;
+  font-size: 0.875rem;
+}
+.btn-ghost:hover { background: var(--border); }
+
+/* ── Video Preview ── */
+.video-preview {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.thumb {
+  width: 168px; height: 94px;
+  border-radius: 8px;
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--surface2);
+}
+
+.vmeta h3 {
+  font-size: 0.97rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-bottom: 5px;
+}
+
+.vmeta-row {
+  color: var(--muted);
+  font-size: 0.83rem;
+  margin-bottom: 3px;
+}
+
+.qrow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+select {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 9px 12px;
+  font-size: 0.88rem;
+  outline: none;
+  cursor: pointer;
+  min-width: 160px;
+}
+select:focus { border-color: var(--primary); }
+
+/* ── Playlist Preview ── */
+.pl-header {
+  margin-bottom: 12px;
+}
+
+.pl-count {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--primary);
+  margin-bottom: 3px;
+}
+
+.pl-sub { color: var(--muted); font-size: 0.83rem; }
+
+.pl-list {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 14px;
+}
+
+.pl-item {
+  padding: 9px 14px;
+  font-size: 0.85rem;
+  color: var(--muted);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pl-item:last-child { border-bottom: none; }
+
+.pl-num {
+  color: var(--border);
+  font-size: 0.78rem;
+  min-width: 20px;
+}
+
+/* ── Progress ── */
+.prog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.prog-title { font-weight: 600; font-size: 0.97rem; }
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-weight: 500;
+}
+
+.badge-dl      { background: rgba(66,165,245,.12); color: var(--blue); }
+.badge-proc    { background: rgba(255,183,77,.12); color: var(--yellow); }
+.badge-done    { background: rgba(76,175,80,.12);  color: var(--green); }
+.badge-err     { background: rgba(239,83,80,.12);  color: var(--red); }
+.badge-paused  { background: rgba(255,183,77,.12); color: var(--yellow); }
+.badge-cancel  { background: rgba(239,83,80,.12);  color: var(--red); }
+
+.spin {
+  width: 12px; height: 12px;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  border-radius: 50%;
+  animation: spin .65s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.pbar-wrap { margin-bottom: 8px; }
+
+.pbar-track {
+  width: 100%;
+  height: 7px;
+  background: var(--surface2);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.pbar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary) 0%, #ff8888 100%);
+  border-radius: 4px;
+  transition: width .35s ease;
+}
+
+.pbar-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.pbar-extra {
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+/* ── Files ── */
+.files-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.files-title { font-weight: 600; }
+
+.file-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--surface2);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+
+.file-icon { font-size: 1.1rem; flex-shrink: 0; }
+
+.file-info { flex: 1; min-width: 0; }
+
+.file-name {
+  font-size: 0.875rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.file-size { font-size: 0.78rem; color: var(--muted); margin-top: 2px; }
+
+.file-actions { flex-shrink: 0; }
+
+/* ── Playlist counter ── */
+.pl-counter {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.pl-counter strong { color: var(--text); }
+
+/* ── Download controls ── */
+.ctrl-row { display: flex; gap: 8px; margin-top: 14px; }
+
+.btn-pause {
+  background: var(--surface2);
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 8px 18px;
+  font-size: 0.875rem;
+}
+.btn-pause:hover { background: var(--border); }
+
+.btn-cancel {
+  background: rgba(239,83,80,.08);
+  color: var(--red);
+  border: 1px solid rgba(239,83,80,.3);
+  padding: 8px 18px;
+  font-size: 0.875rem;
+}
+.btn-cancel:hover { background: rgba(239,83,80,.18); }
+
+/* ── Misc ── */
+.hidden { display: none !important; }
+
+.divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 16px 0;
+}
+
+.loading-dots::after {
+  content: '';
+  animation: dots 1.2s steps(4, end) infinite;
+}
+
+@keyframes dots {
+  0%   { content: ''; }
+  25%  { content: '.'; }
+  50%  { content: '..'; }
+  75%  { content: '...'; }
+}
+
+@media (max-width: 560px) {
+  .video-preview { flex-direction: column; }
+  .thumb { width: 100%; height: 170px; }
+  .url-row { flex-direction: column; }
+  .btn-red { width: 100%; text-align: center; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="logo">
+      <div class="logo-icon">▶</div>
+      <h1>YT Downloader</h1>
+    </div>
+    <p>Download YouTube videos &amp; playlists with embedded audio</p>
+  </header>
+
+  {% if not ffmpeg %}
+  <div class="banner">
+    <span>⚠</span>
+    <span>FFmpeg not detected — quality capped at ~720p. <a href="https://ffmpeg.org/download.html" target="_blank" rel="noopener">Install FFmpeg</a> for 1080p/4K with merged audio.</span>
+  </div>
+  {% endif %}
+
+  <!-- ── Main Input Card ── -->
+  <div class="card">
+    <div class="tabs">
+      <button class="tab active" id="tab-video" onclick="setMode('video')">Single Video</button>
+      <button class="tab" id="tab-playlist" onclick="setMode('playlist')">Playlist</button>
+    </div>
+
+    <div class="url-row">
+      <input type="text" id="url-input" placeholder="Paste YouTube video URL here…" oninput="onUrlChange()">
+      <button class="btn-red" id="fetch-btn" onclick="fetchInfo()">Fetch Info</button>
+    </div>
+  </div>
+
+  <!-- ── Info Card ── -->
+  <div class="card hidden" id="info-card"></div>
+
+  <!-- ── Progress Card ── -->
+  <div class="card hidden" id="prog-card">
+    <div class="prog-header">
+      <span class="prog-title" id="prog-title">Downloading…</span>
+      <span class="badge badge-dl" id="status-badge">
+        <span class="spin"></span>
+        <span id="status-txt">Starting</span>
+      </span>
+    </div>
+
+    <div class="pbar-wrap">
+      <div class="pbar-track">
+        <div class="pbar-fill" id="pbar" style="width:0%"></div>
+      </div>
+      <div class="pbar-meta">
+        <span id="pbar-file">Preparing<span class="loading-dots"></span></span>
+        <span id="pbar-pct">0%</span>
+      </div>
+    </div>
+
+    <div class="pbar-extra" id="pbar-extra"></div>
+    <div class="pl-counter hidden" id="pl-counter"></div>
+    <div class="ctrl-row hidden" id="ctrl-row">
+      <button class="btn-pause" id="pause-btn" onclick="pauseResume()">⏸ Pause</button>
+      <button class="btn-cancel" onclick="cancelDownload()">✕ Cancel</button>
+    </div>
+  </div>
+
+  <!-- ── Files Card ── -->
+  <div class="card hidden" id="files-card">
+    <div class="files-header">
+      <span class="files-title">Downloaded Files</span>
+      <button class="btn-ghost hidden" id="zip-btn" onclick="downloadZip()">⬇ Download All (ZIP)</button>
+    </div>
+    <div id="files-list"></div>
+  </div>
+
+</div>
+
+<script>
+let mode = 'video';
+let jobId = null;
+let pollTimer = null;
+let infoData = null;
+let isPaused = false;
+
+/* ── Mode ── */
+function setMode(m) {
+  mode = m;
+  document.getElementById('tab-video').classList.toggle('active', m === 'video');
+  document.getElementById('tab-playlist').classList.toggle('active', m === 'playlist');
+  document.getElementById('url-input').placeholder =
+    m === 'video' ? 'Paste YouTube video URL here…' : 'Paste YouTube playlist URL here…';
+  resetUI();
+}
+
+/* ── UI helpers ── */
+const $ = id => document.getElementById(id);
+const show = id => $(id).classList.remove('hidden');
+const hide = id => $(id).classList.add('hidden');
+
+function resetUI() {
+  hide('info-card');
+  hide('prog-card');
+  hide('files-card');
+  hide('ctrl-row');
+  hide('pl-counter');
+  infoData = null;
+  isPaused = false;
+  stopPoll();
+  jobId = null;
+}
+
+function onUrlChange() {
+  hide('info-card');
+  hide('prog-card');
+  hide('files-card');
+  infoData = null;
+}
+
+function esc(s) {
+  return String(s || '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── Fetch Info ── */
+async function fetchInfo() {
+  const url = $('url-input').value.trim();
+  if (!url) { alert('Please paste a URL first.'); return; }
+
+  const btn = $('fetch-btn');
+  btn.disabled = true;
+  btn.textContent = 'Fetching…';
+  resetUI();
+
+  try {
+    const res = await fetch('/api/info', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({url, mode})
+    });
+    const data = await res.json();
+
+    if (data.error) {
+      if (data.suggest_mode === 'playlist') {
+        if (confirm(data.error + '\n\nSwitch to Playlist mode?')) {
+          setMode('playlist');
+          $('url-input').value = url;
+          fetchInfo();
+          return;
+        }
+      } else {
+        alert('Error: ' + data.error);
+      }
+      return;
+    }
+
+    infoData = data;
+    renderInfo(data);
+    show('info-card');
+  } catch (e) {
+    alert('Network error: ' + e.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Fetch Info';
+  }
+}
+
+/* ── Render Info Card ── */
+function renderInfo(info) {
+  const card = $('info-card');
+
+  if (info.type === 'video') {
+    const opts = buildQualityOpts(info.quality_options || []);
+    card.innerHTML = `
+      <div class="video-preview">
+        ${info.thumbnail
+          ? `<img src="${esc(info.thumbnail)}" class="thumb" alt="" loading="lazy">`
+          : '<div class="thumb"></div>'}
+        <div class="vmeta" style="flex:1">
+          <h3>${esc(info.title)}</h3>
+          <div class="vmeta-row">Channel: ${esc(info.channel || 'Unknown')}</div>
+          <div class="vmeta-row">Duration: ${esc(info.duration || 'Unknown')}</div>
+          <div class="qrow">
+            <select id="quality-sel">${opts}</select>
+            <button class="btn-red" onclick="startDownload()">⬇ Download</button>
+          </div>
+        </div>
+      </div>`;
+  } else {
+    // Playlist
+    const previewItems = (info.preview || []).map((v, i) =>
+      `<div class="pl-item"><span class="pl-num">${i+1}</span>${esc(v.title)}</div>`
+    ).join('');
+    const more = info.count > (info.preview||[]).length
+      ? `<div class="pl-item" style="font-style:italic;color:var(--border)">
+           <span class="pl-num">…</span>and ${info.count - (info.preview||[]).length} more videos
+         </div>` : '';
+
+    const opts = buildQualityOpts([]);
+    card.innerHTML = `
+      <div class="pl-header">
+        <h3 style="margin-bottom:6px">${esc(info.title)}</h3>
+        <div class="pl-sub">Channel: ${esc(info.channel || 'Unknown')}</div>
+      </div>
+      <div class="pl-count">${info.count} videos</div>
+      <div class="pl-list">${previewItems}${more}</div>
+      <div class="qrow">
+        <select id="quality-sel">${opts}</select>
+        <button class="btn-red" onclick="startDownload()">⬇ Download All</button>
+      </div>`;
+  }
+}
+
+function buildQualityOpts(available) {
+  const fixed = [
+    {v:'best',  l:'Best Quality (Auto)'},
+    {v:'2160',  l:'4K · 2160p'},
+    {v:'1440',  l:'1440p QHD'},
+    {v:'1080',  l:'1080p Full HD'},
+    {v:'720',   l:'720p HD'},
+    {v:'480',   l:'480p'},
+    {v:'360',   l:'360p'},
+    {v:'240',   l:'240p'},
+    {v:'audio', l:'Audio Only (MP3)'},
+  ];
+
+  // Mark available qualities
+  const avSet = new Set(available.map(String));
+  return fixed.map(q => {
+    const tag = avSet.size && q.v !== 'best' && q.v !== 'audio' && !avSet.has(q.v)
+      ? ' (upscaled/unavailable)' : '';
+    return `<option value="${q.v}">${q.l}${tag}</option>`;
+  }).join('');
+}
+
+/* ── Download ── */
+async function startDownload() {
+  const url = $('url-input').value.trim();
+  const quality = $('quality-sel') ? $('quality-sel').value : 'best';
+
+  hide('files-card');
+  show('prog-card');
+
+  $('prog-title').textContent = mode === 'playlist' ? 'Downloading Playlist…' : 'Downloading Video…';
+  setProgress(0, 'Starting download…', '');
+  setStatus('dl', 'Starting');
+
+  try {
+    const res = await fetch('/api/download', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({url, quality, mode})
+    });
+    const data = await res.json();
+
+    if (data.error) { alert('Error: ' + data.error); return; }
+
+    jobId = data.job_id;
+    pollTimer = setInterval(poll, 1000);
+  } catch (e) {
+    alert('Failed to start: ' + e.message);
+  }
+}
+
+/* ── Progress Polling ── */
+function stopPoll() {
+  if (pollTimer) { clearInterval(pollTimer); pollTimer = null; }
+}
+
+async function poll() {
+  if (!jobId) return;
+  try {
+    const res = await fetch(`/api/progress/${jobId}`);
+    const data = await res.json();
+    applyProgress(data);
+    if (data.status === 'complete' || data.status === 'error') stopPoll();
+  } catch (e) {
+    console.warn('poll error', e);
+  }
+}
+
+function applyProgress(d) {
+  const st = d.status;
+
+  if (st === 'starting') {
+    setProgress(0, 'Starting…', '');
+    setStatus('dl', 'Starting');
+    hide('ctrl-row');
+    hide('pl-counter');
+  }
+
+  else if (st === 'downloading') {
+    const pct     = d.progress || 0;
+    const filePct = d.per_file_progress || 0;
+    const label   = d.current_file || 'Downloading…';
+    const speed   = d.speed || '';
+    const eta     = d.eta ? 'ETA ' + d.eta : '';
+    const meta    = [speed, eta].filter(Boolean).join(' · ');
+
+    setProgress(pct, label, meta);
+    setStatus('dl', pct + '%');
+    isPaused = false;
+    $('pause-btn').textContent = '⏸ Pause';
+    show('ctrl-row');
+
+    if (d.total_videos > 1) {
+      const cur = (d.current_video || 0) + 1;
+      $('pl-counter').innerHTML =
+        `Video <strong>${cur}</strong> of <strong>${d.total_videos}</strong>`
+        + ` &nbsp;·&nbsp; file ${filePct}%`;
+      show('pl-counter');
+    }
+  }
+
+  else if (st === 'paused') {
+    setStatus('paused', 'Paused');
+    isPaused = true;
+    $('pause-btn').textContent = '▶ Resume';
+    show('ctrl-row');
+  }
+
+  else if (st === 'processing') {
+    const cur = d.current_video || 0;
+    const tot = d.total_videos || 1;
+    setProgress(tot > 1 ? Math.round(cur / tot * 100) : 99, 'Merging audio & video…', '');
+    setStatus('proc', 'Processing');
+    hide('ctrl-row');
+
+    if (tot > 1) {
+      $('pl-counter').innerHTML =
+        `<strong>${cur}</strong> of <strong>${tot}</strong> videos merged`;
+      show('pl-counter');
+    }
+  }
+
+  else if (st === 'complete') {
+    setProgress(100, 'Complete!', '');
+    setStatus('done', 'Done');
+    $('pbar-extra').textContent = '';
+    hide('ctrl-row');
+    hide('pl-counter');
+    renderFiles(d.files, jobId, d.total_videos > 1 && (d.files || []).length > 1);
+    show('files-card');
+  }
+
+  else if (st === 'error') {
+    setStatus('err', 'Error');
+    $('pbar-file').textContent = '';
+    $('pbar-extra').textContent = '⚠ ' + (d.error || 'Unknown error');
+    hide('ctrl-row');
+    hide('pl-counter');
+  }
+
+  else if (st === 'cancelled') {
+    setProgress(0, 'Download cancelled', '');
+    setStatus('cancel', 'Cancelled');
+    hide('ctrl-row');
+    hide('pl-counter');
+  }
+}
+
+function setProgress(pct, file, extra) {
+  $('pbar').style.width = pct + '%';
+  $('pbar-pct').textContent = pct + '%';
+  $('pbar-file').className = pct < 100 ? 'loading-dots' : '';
+  $('pbar-file').textContent = file;
+  $('pbar-extra').textContent = extra;
+}
+
+function setStatus(type, text) {
+  const map = {
+    dl: 'badge-dl', proc: 'badge-proc', done: 'badge-done',
+    err: 'badge-err', paused: 'badge-paused', cancel: 'badge-cancel',
+  };
+  const badge = $('status-badge');
+  badge.className = 'badge ' + (map[type] || 'badge-dl');
+
+  const spin = badge.querySelector('.spin');
+  spin.style.display = ['done', 'err', 'paused', 'cancel'].includes(type) ? 'none' : 'inline-block';
+
+  $('status-txt').textContent = text;
+}
+
+/* ── Files ── */
+function fileIcon(name) {
+  const ext = (name.split('.').pop() || '').toLowerCase();
+  if (['mp4','mkv','webm','mov'].includes(ext)) return '🎬';
+  if (['mp3','m4a','ogg','opus','wav'].includes(ext)) return '🎵';
+  return '📄';
+}
+
+function renderFiles(files, jid, showZip) {
+  const list = $('files-list');
+
+  if (!files || !files.length) {
+    list.innerHTML = '<p style="color:var(--muted);font-size:.875rem">No files found.</p>';
+    return;
+  }
+
+  list.innerHTML = files.map(f => {
+    const name = typeof f === 'object' ? f.name : f;
+    const size = typeof f === 'object' ? f.size : '';
+    const icon = fileIcon(name);
+    const dlUrl = `/api/file/${jid}/${encodeURIComponent(name)}`;
+    return `
+      <div class="file-item">
+        <span class="file-icon">${icon}</span>
+        <div class="file-info">
+          <div class="file-name" title="${esc(name)}">${esc(name)}</div>
+          ${size ? `<div class="file-size">${esc(size)}</div>` : ''}
+        </div>
+        <div class="file-actions">
+          <a href="${dlUrl}" download="${esc(name)}">
+            <button class="btn-ghost">⬇ Save</button>
+          </a>
+        </div>
+      </div>`;
+  }).join('');
+
+  const zipBtn = $('zip-btn');
+  zipBtn.classList.toggle('hidden', !showZip);
+  zipBtn.dataset.job = jid;
+}
+
+function downloadZip() {
+  const jid = $('zip-btn').dataset.job;
+  if (jid) window.location.href = `/api/zip/${jid}`;
+}
+
+/* ── Pause / Resume / Cancel ── */
+async function pauseResume() {
+  if (!jobId) return;
+  const endpoint = isPaused ? 'resume' : 'pause';
+  isPaused = !isPaused;
+  $('pause-btn').textContent = isPaused ? '▶ Resume' : '⏸ Pause';
+  try {
+    await fetch(`/api/${endpoint}/${jobId}`, { method: 'POST' });
+  } catch (e) {
+    console.warn('pause/resume error', e);
+  }
+}
+
+async function cancelDownload() {
+  if (!jobId) return;
+  if (!confirm('Cancel this download?')) return;
+  try {
+    await fetch(`/api/cancel/${jobId}`, { method: 'POST' });
+  } catch (e) {
+    console.warn('cancel error', e);
+  }
+}
+
+/* ── Keyboard shortcut ── */
+$('url-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') fetchInfo();
+});
+</script>
+</body>
+</html>
