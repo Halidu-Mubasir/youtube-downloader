@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify, send_file
+from flask import Flask, render_template, request, jsonify, send_file, after_this_request
 import yt_dlp
 import os
 import threading
@@ -284,9 +284,24 @@ def get_progress(job_id):
 @app.route('/api/file/<job_id>/<path:filename>')
 def serve_file(job_id, filename):
     filename = os.path.basename(filename)
-    filepath = os.path.join(DOWNLOAD_DIR, job_id, filename)
+    job_dir = os.path.join(DOWNLOAD_DIR, job_id)
+    filepath = os.path.join(job_dir, filename)
     if not os.path.isfile(filepath):
         return jsonify({'error': 'File not found'}), 404
+
+    @after_this_request
+    def cleanup(response):
+        try:
+            os.remove(filepath)
+        except Exception:
+            pass
+        try:
+            if not os.listdir(job_dir):
+                os.rmdir(job_dir)
+        except Exception:
+            pass
+        return response
+
     return send_file(filepath, as_attachment=True, download_name=filename)
 
 
@@ -303,6 +318,9 @@ def serve_zip(job_id):
             if os.path.isfile(fpath):
                 zf.write(fpath, fname)
     buf.seek(0)
+
+    # All files are in memory — safe to wipe the server copy immediately
+    shutil.rmtree(job_dir, ignore_errors=True)
 
     return send_file(buf, mimetype='application/zip', as_attachment=True, download_name='playlist.zip')
 
@@ -336,4 +354,5 @@ def cancel_download(job_id):
 
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000, use_reloader=False)
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
