@@ -46,6 +46,19 @@ def fmt_duration(seconds):
     return f'{h}:{m:02d}:{s:02d}' if h else f'{m}:{s:02d}'
 
 
+def _refresh_files(job, job_dir):
+    if not os.path.isdir(job_dir):
+        return
+    files = []
+    for fname in sorted(os.listdir(job_dir)):
+        if fname.endswith(('.part', '.ytdl')):
+            continue
+        fpath = os.path.join(job_dir, fname)
+        if os.path.isfile(fpath):
+            files.append({'name': fname, 'size': fmt_size(os.path.getsize(fpath))})
+    job['files'] = files
+
+
 def fmt_size(b):
     if not b:
         return ''
@@ -226,12 +239,20 @@ def _run_download(job_id, url, quality, mode):
                 'current_video': video_index[0],
                 'current_file': os.path.basename(d.get('filename', '')),
             })
+            _refresh_files(job, job_dir)
+
+    def pp_hook(d):
+        if d['status'] == 'finished':
+            j = download_jobs.get(job_id)
+            if j:
+                _refresh_files(j, job_dir)
 
     opts = {
         **_base_opts(),
         'format': fmt,
         'outtmpl': os.path.join(job_dir, '%(title)s.%(ext)s'),
         'progress_hooks': [hook],
+        'postprocessor_hooks': [pp_hook],
         'noplaylist': mode == 'video',
     }
 
@@ -252,17 +273,10 @@ def _run_download(job_id, url, quality, mode):
         with yt_dlp.YoutubeDL(opts) as ydl:
             ydl.download([url])
 
-        # Collect final files
-        files = []
-        for fname in sorted(os.listdir(job_dir)):
-            fpath = os.path.join(job_dir, fname)
-            if os.path.isfile(fpath):
-                files.append({'name': fname, 'size': fmt_size(os.path.getsize(fpath))})
-
+        _refresh_files(download_jobs[job_id], job_dir)
         download_jobs[job_id].update({
             'status': 'complete',
             'progress': 100,
-            'files': files,
         })
 
     except Exception as exc:

@@ -476,7 +476,7 @@ select:focus { border-color: var(--primary); }
   <!-- ── Files Card ── -->
   <div class="card hidden" id="files-card">
     <div class="files-header">
-      <span class="files-title">Downloaded Files</span>
+      <span class="files-title" id="files-title">Downloaded Files</span>
       <button class="btn-ghost hidden" id="zip-btn" onclick="downloadZip()">⬇ Download All (ZIP)</button>
     </div>
     <div id="files-list"></div>
@@ -490,6 +490,7 @@ let jobId = null;
 let pollTimer = null;
 let infoData = null;
 let isPaused = false;
+let lastFileCount = 0;
 
 /* ── Mode ── */
 function setMode(m) {
@@ -512,8 +513,10 @@ function resetUI() {
   hide('files-card');
   hide('ctrl-row');
   hide('pl-counter');
+  hide('files-card');
   infoData = null;
   isPaused = false;
+  lastFileCount = 0;
   stopPoll();
   jobId = null;
 }
@@ -689,6 +692,7 @@ async function poll() {
 
 function applyProgress(d) {
   const st = d.status;
+  const terminal = ['complete', 'cancelled', 'error'].includes(st);
 
   if (st === 'starting') {
     setProgress(0, 'Starting…', '');
@@ -747,8 +751,6 @@ function applyProgress(d) {
     $('pbar-extra').textContent = '';
     hide('ctrl-row');
     hide('pl-counter');
-    renderFiles(d.files, jobId, d.total_videos > 1 && (d.files || []).length > 1);
-    show('files-card');
   }
 
   else if (st === 'error') {
@@ -765,6 +767,32 @@ function applyProgress(d) {
     hide('ctrl-row');
     hide('pl-counter');
   }
+
+  syncFiles(d, terminal);
+}
+
+function syncFiles(d, forceUpdate) {
+  const files = d.files || [];
+  if (files.length === 0) return;
+  if (!forceUpdate && files.length === lastFileCount) return;
+  lastFileCount = files.length;
+
+  const st = d.status;
+  const total = d.total_videos || 1;
+  const terminal = ['complete', 'cancelled', 'error'].includes(st);
+  const showZip = terminal && files.length > 1;
+
+  if (st === 'complete') {
+    $('files-title').textContent = 'Downloaded Files';
+  } else if (total > 1) {
+    $('files-title').textContent =
+      `Ready to Save — ${files.length} of ${total} done`;
+  } else {
+    $('files-title').textContent = 'Ready to Save';
+  }
+
+  renderFiles(files, jobId, showZip);
+  show('files-card');
 }
 
 function setProgress(pct, file, extra) {
